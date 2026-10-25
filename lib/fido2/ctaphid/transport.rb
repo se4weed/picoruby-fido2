@@ -3,7 +3,9 @@
 module FIDO2
   module CTAPHID
     REPORT_SIZE = 64
-    BROADCAST_CHANNEL = 0xFFFF_FFFF
+    # Channel IDs are opaque 32-bit values. Keep them signed internally so
+    # this file can be loaded by PicoRuby builds whose mrb_int is 32-bit.
+    BROADCAST_CHANNEL = -1
     COMMAND_PING = 0x01
     COMMAND_INIT = 0x06
     COMMAND_CBOR = 0x10
@@ -57,7 +59,7 @@ module FIDO2
       def feed(report)
         raise ArgumentError, "HID report must be 64 bytes" unless report.bytesize == REPORT_SIZE
 
-        channel = report.unpack("N").first
+        channel = report.unpack("l>").first
         marker = report.getbyte(4)
         marker & 0x80 == 0x80 ? start_message(channel, marker, report) : continue_message(channel, marker, report)
       end
@@ -104,7 +106,7 @@ module FIDO2
 
         Packetizer.call(handle(message))
       rescue ArgumentError
-        Packetizer.call(Message.new(channel_id: report.unpack("N").first, command: COMMAND_ERROR, payload: [ERROR_INVALID_SEQUENCE].pack("C")))
+        Packetizer.call(Message.new(channel_id: report.unpack("l>").first, command: COMMAND_ERROR, payload: [ERROR_INVALID_SEQUENCE].pack("C")))
       end
 
       private
@@ -142,7 +144,7 @@ module FIDO2
 
       def allocate_channel
         loop do
-          channel = @random_bytes.call(4).unpack("N").first
+          channel = @random_bytes.call(4).unpack("l>").first
           return channel unless channel.zero? || channel == BROADCAST_CHANNEL || @channels[channel]
         end
       end

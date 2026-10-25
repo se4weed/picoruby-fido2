@@ -2,7 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <tusb.h>
+bool tud_hid_n_ready(uint8_t instance);
+bool tud_hid_n_report(uint8_t instance, uint8_t report_id, const void *report, uint16_t length);
 
 #define FIDO2_HID_INSTANCE 3
 #define FIDO2_REPORT_SIZE 64

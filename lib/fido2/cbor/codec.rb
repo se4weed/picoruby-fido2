@@ -79,8 +79,9 @@ module FIDO2
       when 0..23 then [prefix | value].pack("C")
       when 24..0xFF then [prefix | 24, value].pack("CC")
       when 0x100..0xFFFF then [prefix | 25, value].pack("Cn")
-      when 0x1_0000..0xFFFF_FFFF then [prefix | 26, value].pack("CN")
-      else [prefix | 27, value].pack("CQ>")
+      when 0x1_0000..0x7FFF_FFFF then [prefix | 26, value].pack("CN")
+      else
+        raise RangeError, "CBOR integer is outside PicoRuby's 32-bit range"
       end
     end
     class Decoder

@@ -12,6 +12,9 @@ MRuby::Gem::Specification.new("picoruby-fido2") do |spec|
   spec.cc.include_paths << "#{MRUBY_ROOT}/mrbgems/picoruby-rng/include"
   spec.cc.include_paths << "#{MRUBY_ROOT}/mrbgems/picoruby-mbedtls/lib/mbedtls/include"
   spec.objs << "#{build_dir}/vendor/p256-m/p256-m.o"
+  if ENV["PICORB_BOARD"]
+    spec.objs << "#{build_dir}/ports/rp2040/fido2_usb.o"
+  end
   source_files = [
     "#{dir}/lib/fido2/cbor/codec.rb",
     "#{dir}/lib/fido2/crypto.rb",
