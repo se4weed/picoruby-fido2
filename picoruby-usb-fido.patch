@@ -1,0 +1,102 @@
+*** Begin Patch
+*** Update File: mrbgems/picoruby-r2p2/include/tusb_config.h
+@@
+-#define CFG_TUD_HID              3
++#define CFG_TUD_HID              4
+@@
+-#define CFG_TUD_HID_EP_BUFSIZE    16
++#define CFG_TUD_HID_EP_BUFSIZE    64
+*** Update File: mrbgems/picoruby-r2p2/ports/rp2040/usb_descriptors.c
+@@
+   ITF_NUM_HID_CONSUMER,
++  ITF_NUM_HID_FIDO,
+   ITF_NUM_TOTAL
+@@
+   #define EPNUM_HID_CONSUMER  0x8C
++  #define EPNUM_HID_FIDO_OUT  0x0D
++  #define EPNUM_HID_FIDO_IN   0x8E
+@@
+   #define EPNUM_HID_CONSUMER  0x8C
++  #define EPNUM_HID_FIDO_OUT  0x0D
++  #define EPNUM_HID_FIDO_IN   0x8E
+@@
+   #define EPNUM_HID_CONSUMER  0x8C
++  #define EPNUM_HID_FIDO_OUT  0x0D
++  #define EPNUM_HID_FIDO_IN   0x8E
+@@
+   #define EPNUM_HID_CONSUMER  0x89
++  #define EPNUM_HID_FIDO_OUT  0x0A
++  #define EPNUM_HID_FIDO_IN   0x8A
+@@
+-#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + CFG_TUD_CDC * TUD_CDC_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
++#define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + CFG_TUD_CDC * TUD_CDC_DESC_LEN + \
++                             (CFG_TUD_HID - 1) * TUD_HID_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
+@@
+ uint8_t const desc_hid_consumer_report[] =
+ {
+   TUD_HID_REPORT_DESC_CONSUMER()
+ };
++
++// FIDO Alliance HID usage page, with one 64-byte input and output report.
++uint8_t const desc_hid_fido_report[] =
++{
++  0x06, 0xD0, 0xF1,       // Usage Page (FIDO Alliance)
++  0x09, 0x01,             // Usage (U2F Authenticator Device)
++  0xA1, 0x01,             // Collection (Application)
++  0x09, 0x20,             //   Usage (Input Report Data)
++  0x15, 0x00,             //   Logical Minimum (0)
++  0x26, 0xFF, 0x00,       //   Logical Maximum (255)
++  0x75, 0x08,             //   Report Size (8)
++  0x95, 0x40,             //   Report Count (64)
++  0x81, 0x02,             //   Input (Data, Variable, Absolute)
++  0x09, 0x21,             //   Usage (Output Report Data)
++  0x15, 0x00,             //   Logical Minimum (0)
++  0x26, 0xFF, 0x00,       //   Logical Maximum (255)
++  0x75, 0x08,             //   Report Size (8)
++  0x95, 0x40,             //   Report Count (64)
++  0x91, 0x02,             //   Output (Data, Variable, Absolute)
++  0xC0                    // End Collection
++};
+@@
+     case 2: return desc_hid_consumer_report;
++    case 3: return desc_hid_fido_report;
+@@
+   TUD_HID_DESCRIPTOR(ITF_NUM_HID_CONSUMER, 9, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_consumer_report), EPNUM_HID_CONSUMER, CFG_TUD_HID_EP_BUFSIZE, 10),
++
++  // FIDO CTAPHID
++  TUD_HID_INOUT_DESCRIPTOR(ITF_NUM_HID_FIDO, 10, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_fido_report), EPNUM_HID_FIDO_OUT, EPNUM_HID_FIDO_IN, 64, 5),
+@@
+   TUD_HID_DESCRIPTOR(ITF_NUM_HID_CONSUMER, 9, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_consumer_report), EPNUM_HID_CONSUMER, CFG_TUD_HID_EP_BUFSIZE, 10),
++
++  // FIDO CTAPHID
++  TUD_HID_INOUT_DESCRIPTOR(ITF_NUM_HID_FIDO, 10, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_fido_report), EPNUM_HID_FIDO_OUT, EPNUM_HID_FIDO_IN, 64, 5),
+@@
+   "PicoRuby HID Consumer Control", // 9: HID Consumer Control
++  "PicoRuby FIDO2 Authenticator", // 10: FIDO CTAPHID
+ };
+*** Update File: mrbgems/picoruby-usb-hid/ports/rp2040/usb-hid.c
+@@
+ #define ITF_HID_CONSUMER  2
++#define ITF_HID_FIDO      3
++
++extern void fido2_usb_receive_report(const uint8_t *report, uint16_t length);
++extern void fido2_usb_report_complete(void);
+@@
+ tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
+@@
+ {
++  if (instance == ITF_HID_FIDO && report_type == HID_REPORT_TYPE_OUTPUT) {
++    fido2_usb_receive_report(buffer, bufsize);
++    return;
++  }
++
+   if (instance == ITF_HID_KEYBOARD &&
+@@
+ {
+-  (void) instance;
++  if (instance == ITF_HID_FIDO) {
++    fido2_usb_report_complete();
++    return;
++  }
+   (void) report;
+*** End Patch

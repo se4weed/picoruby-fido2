@@ -1,0 +1,8 @@
+.DS_Store
+*.swp
+
+# Local presentation material
+/cfp*.md
+
+# Preserve, but do not publish, the demo's former standalone Git metadata.
+/demo/.git.standalone-backup/
